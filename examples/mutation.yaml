@@ -1,0 +1,17 @@
+schema_version: 1
+model:
+  Ne: 100
+  mutation_forward: 0.001
+  mutation_backward: 0.002
+  boundary: mutation
+grid:
+  points: 501
+initial_condition:
+  type: delta
+  x0: 0
+solver:
+  method: implicit_euler
+  dt: 0.5
+  output_times: [0, 100, 500, 1000]
+output:
+  summary_csv: results/mutation_summary.csv

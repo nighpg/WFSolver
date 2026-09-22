@@ -1,0 +1,18 @@
+schema_version: 1
+model:
+  Ne:
+    type: piecewise_constant
+    breakpoints: [0, 500, 800]
+    values: [10000, 1000, 10000]
+  boundary: absorbing
+grid:
+  points: 501
+initial_condition:
+  type: delta
+  x0: 0.3
+solver:
+  method: implicit_euler
+  dt: 0.5
+  output_times: [0, 100, 500, 600, 800, 1000]
+output:
+  summary_csv: results/bottleneck_summary.csv

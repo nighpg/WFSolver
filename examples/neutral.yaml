@@ -1,0 +1,16 @@
+schema_version: 1
+model:
+  Ne: 1000
+  selection: 0
+  boundary: absorbing
+grid:
+  type: uniform
+  points: 501
+initial_condition:
+  type: delta
+  x0: 0.3
+solver:
+  method: expm
+  output_times: [0, 100, 500, 1000]
+output:
+  summary_csv: results/neutral_summary.csv

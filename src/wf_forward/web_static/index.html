@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Wright–Fisher Lab · Allele Frequency Simulator</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Wright–Fisher Lab home"><span class="brand-icon">w<span>f</span></span><span>Wright–Fisher <b>Lab</b></span></a>
+    <div class="top-meta"><span class="connection"><i></i> LOCAL WORKSPACE</span><span class="version">v0.1</span></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="sidebar-heading"><span class="eyebrow">MODEL SETUP</span><span class="small-pill">Diploid · One locus</span></div>
+      <h1>Simulation settings</h1>
+      <p class="muted intro">Choose a model and explore its dynamics.</p>
+      <form id="simulation-form">
+        <fieldset id="settings">
+          <legend class="sr-only">Simulation settings</legend>
+          <div class="preset-grid" aria-label="Model presets">
+            <button type="button" class="preset active" data-preset="neutral" aria-pressed="true"><span>01</span>Neutral</button>
+            <button type="button" class="preset" data-preset="selection" aria-pressed="false"><span>02</span>Selection</button>
+            <button type="button" class="preset" data-preset="mutation" aria-pressed="false"><span>03</span>Mutation</button>
+            <button type="button" class="preset" data-preset="bottleneck" aria-pressed="false"><span>04</span>Bottleneck</button>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Configuration input">
+            <button type="button" id="form-tab" role="tab" aria-selected="true" aria-controls="form-panel" class="active">Form</button>
+            <button type="button" id="json-tab" role="tab" aria-selected="false" aria-controls="json-panel">JSON</button>
+          </div>
+          <div id="form-panel" role="tabpanel" aria-labelledby="form-tab">
+            <section class="form-section">
+              <h2><span>01</span> Population & selection</h2>
+              <label for="ne">Effective population size <span class="symbol">Nₑ</span></label>
+              <input id="ne" type="number" value="1000" min="1" step="any" required>
+              <label class="checkbox"><input id="schedule-enabled" type="checkbox"> Time-varying population size</label>
+              <div id="schedule-fields" hidden>
+                <label for="schedule">Start generation : population size</label>
+                <textarea id="schedule" rows="3" spellcheck="false">0: 10000
+500: 1000
+800: 10000</textarea>
+                <p class="field-hint">One change per line, starting at generation 0.</p>
+              </div>
+              <div class="field-row">
+                <div><label for="selection">Selection coefficient <span class="symbol">s</span></label><input id="selection" type="number" value="0" step="any" required></div>
+                <div><label for="dominance">Dominance <span class="symbol">h</span></label><input id="dominance" type="number" value="0.5" step="any" required></div>
+              </div>
+            </section>
+            <section class="form-section">
+              <h2><span>02</span> Boundaries & mutation</h2>
+              <label for="boundary">Boundary condition</label>
+              <select id="boundary"><option value="absorbing">Absorbing — track loss & fixation</option><option value="mutation">Mutation — allow endpoint re-entry</option></select>
+              <div id="mutation-fields" class="field-row" hidden>
+                <div><label for="u">a → A <span class="symbol">u</span></label><input id="u" type="number" value="0.0005" min="0" step="any" required></div>
+                <div><label for="v">A → a <span class="symbol">v</span></label><input id="v" type="number" value="0.0005" min="0" step="any" required></div>
+              </div>
+            </section>
+            <section class="form-section">
+              <h2><span>03</span> Initial state</h2>
+              <label for="initial-type">Initial distribution</label>
+              <select id="initial-type"><option value="delta">Single allele frequency</option><option value="beta">Beta distribution</option></select>
+              <div id="delta-fields"><label for="x0">Initial frequency <span class="symbol">x₀</span></label><input id="x0" type="number" min="0" max="1" step="any" value="0.3" required></div>
+              <div id="beta-fields" class="field-row" hidden>
+                <div><label for="alpha">Shape <span class="symbol">α</span></label><input id="alpha" type="number" value="2" min="0.000001" step="any" required></div>
+                <div><label for="beta">Shape <span class="symbol">β</span></label><input id="beta" type="number" value="5" min="0.000001" step="any" required></div>
+              </div>
+            </section>
+            <section class="form-section">
+              <h2><span>04</span> Numerical settings</h2>
+              <div class="field-row">
+                <div><label for="end-time">End time <span class="unit">generations</span></label><input id="end-time" type="number" value="1000" min="0.000001" step="any" required></div>
+                <div><label for="points">Grid points</label><input id="points" type="number" value="501" min="101" max="20001" step="1" required></div>
+              </div>
+              <div class="field-row">
+                <div><label for="outputs">Output times</label><input id="outputs" type="number" value="51" min="2" max="201" step="1" required></div>
+                <div><label for="method">Integrator</label><select id="method"><option value="auto">Auto</option><option value="expm">Matrix exponential</option><option value="implicit_euler">Implicit Euler</option></select></div>
+              </div>
+              <label for="dt">Time step <span class="unit">Blank = adaptive</span></label><input id="dt" type="number" placeholder="Auto" min="0.000000000001" step="any">
+              <p class="field-hint">The time step applies to implicit Euler.</p>
+            </section>
+          </div>
+          <div id="json-panel" role="tabpanel" aria-labelledby="json-tab" hidden>
+            <label for="config-json">Configuration JSON (shared with CLI)</label>
+            <textarea id="config-json" spellcheck="false" rows="26" aria-describedby="json-hint"></textarea>
+            <p id="json-hint" class="field-hint">Edit output times and coefficient schedules directly. This tab runs the JSON as entered. Switching back to Form uses the form values instead.</p>
+          </div>
+        </fieldset>
+        <div class="run-controls">
+          <button id="run" type="submit" class="primary"><span id="run-label">Run simulation</span><span aria-hidden="true">↗</span></button>
+          <button id="cancel" type="button" class="secondary" hidden>Cancel calculation</button>
+          <p class="local-note">Runs on this computer</p>
+        </div>
+      </form>
+    </aside>
+    <main>
+      <div class="page-heading">
+        <div><div class="eyebrow">WRIGHT–FISHER DIFFUSION</div><h2>Allele frequency dynamics</h2><p>Explore how drift, selection, and mutation shape a population.</p></div>
+        <div class="solver-badge"><span class="status-dot"></span> CPU <span>／</span> FLOAT64</div>
+      </div>
+      <div id="status-banner" class="status-banner" role="status" aria-live="polite"><span id="status-icon">○</span><span id="status-text">Set up your model and run a simulation to begin.</span></div>
+      <div id="error-banner" class="error-banner" role="alert" hidden></div>
+      <div class="section-bar"><div><span class="eyebrow">SIMULATION RESULTS</span><span id="result-badge" class="result-badge">NOT RUN</span></div><div class="downloads" id="downloads" hidden><a id="download-config">Config JSON ↓</a><a id="download-csv">Summary CSV ↓</a><a id="download-npz" class="download-primary">NPZ ↓</a></div></div>
+      <section class="metrics" aria-label="Statistics at the selected time">
+        <article class="metric"><span>Mean frequency <b>E[X]</b></span><strong id="mean-value">—</strong><small>Includes endpoint mass</small></article>
+        <article class="metric"><span id="loss-label">Loss probability <b>P₀</b></span><strong id="loss-value">—</strong><small id="loss-hint">Allele frequency x = 0</small></article>
+        <article class="metric"><span id="fix-label">Fixation probability <b>P₁</b></span><strong id="fix-value">—</strong><small id="fix-hint">Allele frequency x = 1</small></article>
+        <article class="metric"><span>Heterozygosity <b>H</b></span><strong id="hetero-value">—</strong><small>E[2X(1 − X)]</small></article>
+      </section>
+      <section class="panel distribution-panel">
+        <div class="panel-heading"><div><h3>Allele frequency distribution</h3><p>Interior probability density φ(x, t)</p></div><span class="time-chip">t = <b id="selected-time">—</b> generations</span></div>
+        <div class="plot-controls">
+          <label class="axis-toggle"><input id="lock-density-axis" type="checkbox">Lock y-axis</label>
+          <label class="axis-limit" for="density-ymax">Maximum<input id="density-ymax" type="number" value="1" min="0.000000000001" step="any" disabled aria-describedby="axis-hint"></label>
+          <span id="axis-hint" class="axis-hint" aria-live="polite">Auto-scale at each time point</span>
+        </div>
+        <div class="chart-wrap distribution"><canvas id="density-chart" role="img" aria-label="Allele frequency density at the selected time"></canvas><div id="density-empty" class="chart-empty"><span class="empty-glyph">∿</span><strong>Explore distributions through time</strong><span>Run a simulation, then use the slider to explore.</span></div></div>
+        <div class="timeline"><button id="play" class="play-button" type="button" disabled aria-label="Play time evolution">▶</button><div class="slider-track"><label class="sr-only" for="time-slider">Displayed output time</label><input type="range" id="time-slider" min="0" max="1" value="0" step="1" disabled><div class="timeline-labels"><span id="time-start">0 generations</span><span id="time-end">— generations</span></div></div><span id="frame-index" class="frame-index">— / —</span></div>
+        <div class="chart-caption"><span><i class="legend-dot teal"></i> Distribution at selected time</span><span id="density-note">Endpoint probability mass is shown separately below</span></div>
+      </section>
+      <section class="panel trajectory-panel">
+        <div class="panel-heading"><div><h3>Sampled allele-frequency trajectories</h3><p>Sample paths from the displayed simulation result.</p></div></div>
+        <form id="trajectory-form" class="trajectory-controls">
+          <label for="path-count">Paths<input id="path-count" type="number" min="1" max="128" step="1" value="32" required></label>
+          <label for="path-seed">Random seed<input id="path-seed" type="number" min="0" max="4294967295" step="1" value="42" required></label>
+          <button id="sample-paths" type="submit" class="primary" disabled>Sample trajectories</button>
+          <button id="cancel-sampling" type="button" class="secondary" hidden>Cancel sampling</button>
+          <div class="downloads" id="trajectory-downloads" hidden><a id="download-path-csv">Paths CSV ↓</a><a id="download-path-npz">Paths NPZ ↓</a></div>
+        </form>
+        <p id="sampling-status" class="sampling-status" role="status" aria-live="polite">Run a simulation to enable sampling.</p>
+        <div class="chart-wrap distribution"><canvas id="trajectory-chart" role="img" aria-label="Sampled allele-frequency paths over time"></canvas></div>
+        <div class="chart-legend"><span><i class="legend-dot indigo"></i>Individual paths</span><span><i class="legend-dot teal"></i>Forward-solver mean (dashed)</span></div>
+        <p class="trajectory-note">Paths follow the model’s grid transition rates, starting from the first saved distribution. Lines connect saved observations; they do not show every jump. Samples have Monte Carlo variation; implicit Euler results also have time-step error.</p>
+      </section>
+      <section class="panel sfs-panel" aria-label="Demographic site frequency spectrum">
+        <div class="panel-heading"><div><span class="eyebrow">DEMOGRAPHIC SFS</span><h3>Expected site frequency spectrum</h3><p>Neutral infinite-sites model with continuous mutation input and ancestral equilibrium.</p></div></div>
+        <p class="sfs-note">This calculation uses its own population history below. Single-locus selection, mutation, initial frequency, and grid settings above do not apply.</p>
+        <form id="sfs-form">
+          <fieldset id="sfs-settings" class="sfs-settings">
+            <legend class="sr-only">SFS model settings</legend>
+            <div class="sfs-input-grid">
+              <div><label for="sfs-n">Sampled allele copies (n)</label><input id="sfs-n" type="number" min="2" max="5000" step="1" value="100" required></div>
+              <div><label for="sfs-theta">Mutation scale (θ)</label><input id="sfs-theta" type="number" min="0" max="1000000000000" step="any" value="1" required></div>
+              <div><label for="sfs-ne">Reference population size N₀</label><input id="sfs-ne" type="number" min="1" max="1000000000000" step="any" value="10000" required></div>
+              <div><label for="sfs-end">SFS end time (generations)</label><input id="sfs-end" type="number" min="0.000001" max="1000000000000" step="any" value="10000" required></div>
+              <div><label for="sfs-preset">Population history preset</label><select id="sfs-preset"><option value="constant">Constant size</option><option value="bottleneck">Bottleneck and recovery</option><option value="growth">Recent growth</option><option value="custom">Custom history</option></select></div>
+              <div><label for="sfs-interpolation">History interpolation</label><select id="sfs-interpolation"><option value="linear">Piecewise linear (PDF)</option><option value="constant">Piecewise constant</option></select></div>
+            </div>
+            <label for="sfs-history">Generation : effective population size (past → present)</label>
+            <textarea id="sfs-history" rows="3" spellcheck="false">0: 10000</textarea>
+            <p class="field-hint">Start at generation 0. The population is at equilibrium before that time. λ = Nₑ / N₀; the last size continues to the end time.</p>
+          </fieldset>
+          <div class="sfs-actions"><button id="sfs-run" type="submit" class="primary" disabled>Calculate SFS</button><button id="sfs-cancel" type="button" class="secondary" hidden>Cancel SFS</button><div id="sfs-downloads" class="downloads" hidden><a id="sfs-csv">SFS CSV ↓</a><a id="sfs-npz">SFS NPZ ↓</a><a id="sfs-config">Config JSON ↓</a></div></div>
+        </form>
+        <p id="sfs-status" class="sampling-status" role="status" aria-live="polite">Choose a population history and calculate its expected SFS.</p>
+        <div class="sfs-view-controls">
+          <div><label for="sfs-mode">Spectrum convention</label><select id="sfs-mode"><option value="symmetric">PDF symmetric: θ[1/i + 1/(n−i)]</option><option value="derived">Standard derived: θ/i</option></select></div>
+          <div><label for="sfs-fold">Allele counts</label><select id="sfs-fold"><option value="unfolded">Unfolded</option><option value="folded">Folded (minor allele count)</option></select></div>
+          <div><label for="sfs-normalization">Vertical values</label><select id="sfs-normalization"><option value="expected">Expected sites</option><option value="relative">Polymorphic proportions</option></select></div>
+          <label class="checkbox"><input id="sfs-log" type="checkbox" checked>Log y-axis</label>
+          <label class="checkbox"><input id="sfs-compare" type="checkbox">Compare both conventions</label>
+          <label class="checkbox"><input id="sfs-reference" type="checkbox" checked>Show ancestral equilibrium</label>
+        </div>
+        <div class="chart-wrap distribution"><canvas id="sfs-chart" role="img" aria-label="Expected SFS, available after calculation"></canvas></div>
+        <div class="sfs-timeline"><label for="sfs-time">SFS output time</label><input id="sfs-time" type="range" min="0" max="50" value="0" step="1" disabled><span id="sfs-time-label">— generations</span></div>
+        <div class="chart-legend"><span><i class="legend-dot teal"></i>Selected convention</span><span id="sfs-other-legend" hidden><i class="legend-dot gold"></i>Other convention</span><span id="sfs-reference-legend"><i class="legend-dot indigo"></i>Ancestral equilibrium (dashed)</span></div>
+        <p id="sfs-summary" class="sfs-note">Monomorphic classes i = 0 and i = n are excluded.</p>
+        <p class="sfs-note">θ is the reference equilibrium amplitude, not inferred from a per-base mutation rate. The symmetric convention sums a derived spectrum and its reflection, with equal mutation input from both ends; it is not their average. At the same θ its total is twice the derived total. Folding is separate and counts the midpoint only once.</p>
+      </section>
+      <div class="chart-grid">
+        <section class="panel"><div class="panel-heading"><div><h3 id="boundary-title">Loss, fixation & interior mass</h3><p id="boundary-subtitle">Probability through time</p></div></div><div class="chart-wrap small"><canvas id="probability-chart" role="img" aria-label="Endpoint and interior probability over time"></canvas></div><div class="chart-legend"><span><i class="legend-dot coral"></i><span id="legend-zero">Loss</span></span><span><i class="legend-dot indigo"></i><span id="legend-one">Fixation</span></span><span><i class="legend-dot teal"></i>Interior</span></div></section>
+        <section class="panel"><div class="panel-heading"><div><h3>Mean & heterozygosity</h3><p>Summary statistics over time</p></div></div><div class="chart-wrap small"><canvas id="moments-chart" role="img" aria-label="Mean frequency and heterozygosity over time"></canvas></div><div class="chart-legend"><span><i class="legend-dot teal"></i>Mean frequency E[X]</span><span><i class="legend-dot gold"></i>Heterozygosity H</span></div></section>
+      </div>
+      <section class="panel diagnostics"><div class="diagnostics-title"><span class="check-symbol">✓</span><h3>Diagnostics</h3><span id="diagnostic-status">Available after simulation</span></div><dl><div><dt>Max. mass error before correction</dt><dd id="mass-error">—</dd></div><div><dt>Max. Péclet number</dt><dd id="peclet">—</dd></div><div><dt>Integrator</dt><dd id="actual-method">—</dd></div><div><dt>Compute time</dt><dd id="runtime">—</dd></div></dl><ul id="warnings" hidden></ul></section>
+      <footer><span>Wright–Fisher Lab</span><span>Generations · V(x, t) = x(1 − x) / (2Nₑ) · Mass-conserving CTMC</span></footer>
+    </main>
+  </div>
+</body>
+</html>
